@@ -61,7 +61,6 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     """Return a mood label given a song and user profile."""
     energy = song.get("energy", 0)
     genre = song.get("genre", "")
-    title = song.get("title", "")
 
     hype_min_energy = profile.get("hype_min_energy", 7)
     chill_max_energy = profile.get("chill_max_energy", 3)
@@ -71,7 +70,12 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     chill_keywords = ["lofi", "ambient", "sleep"]
 
     is_hype_keyword = any(k in genre for k in hype_keywords)
-    is_chill_keyword = any(k in title for k in chill_keywords)
+
+    # FIX 1: The original code checked chill keywords against the song's
+    # title instead of its genre. For example, a song with genre "ambient"
+    # would not be caught by this check. Fixed to check genre, which is
+    # consistent with how hype keywords are checked.
+    is_chill_keyword = any(k in genre for k in chill_keywords)
 
     if genre == favorite_genre or energy >= hype_min_energy or is_hype_keyword:
         return "Hype"
@@ -116,12 +120,18 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
     chill = playlists.get("Chill", [])
     mixed = playlists.get("Mixed", [])
 
-    total = len(hype)
+    # FIX 2: The original code set total = len(hype), which meant hype_ratio
+    # was always hype / hype = 1.0. Fixed to use len(all_songs) so the ratio
+    # correctly reflects what portion of ALL songs are hype.
+    total = len(all_songs)
     hype_ratio = len(hype) / total if total > 0 else 0.0
 
     avg_energy = 0.0
     if all_songs:
-        total_energy = sum(song.get("energy", 0) for song in hype)
+        # FIX 3: The original code only summed energy from hype songs but
+        # divided by the total number of all songs, giving a deflated and
+        # incorrect average. Fixed to sum energy across all songs.
+        total_energy = sum(song.get("energy", 0) for song in all_songs)
         avg_energy = total_energy / len(all_songs)
 
     top_artist, top_count = most_common_artist(all_songs)
@@ -168,10 +178,16 @@ def search_songs(
 
     for song in songs:
         value = str(song.get(field, "")).lower()
-        if value and value in q:
+        # FIX 4: The original condition was `value in q`, which asked "does
+        # the full artist name fit inside the short query?" that will almost always
+        # False. Fixed to `q in value`, which asks "does the query appear
+        # somewhere in the artist name?" allowing partial matches like
+        # typing "qu" to find "queen".
+        if value and q in value:
             filtered.append(song)
 
     return filtered
+
 
 
 def lucky_pick(
@@ -184,16 +200,24 @@ def lucky_pick(
     elif mode == "chill":
         songs = playlists.get("Chill", [])
     else:
-        songs = playlists.get("Hype", []) + playlists.get("Chill", [])
+        # FIX 5: The original "any" mode only pulled from Hype and Chill,
+        # silently leaving out Mixed songs entirely. Fixed to include all
+        # three playlists so every song has a chance of being picked.
+        songs = (playlists.get("Hype", []) +
+                 playlists.get("Chill", []) +
+                 playlists.get("Mixed", []))
 
     return random_choice_or_none(songs)
 
 
 def random_choice_or_none(songs: List[Song]) -> Optional[Song]:
-    """Return a random song or None."""
+    """Return a random song or None if the list is empty."""
     import random
 
-    return random.choice(songs)
+    # FIX 6: The original code called random.choice(songs) with no guard,
+    # which crashes with an IndexError when the list is empty. Fixed to
+    # return None instead, which the app handles gracefully with a warning.
+    return random.choice(songs) if songs else None
 
 
 def history_summary(history: List[Song]) -> Dict[str, int]:
