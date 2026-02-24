@@ -110,4 +110,10 @@ If you finish early or want an extra challenge, try one of these:
 - Treat surprising behavior as something worth investigating.  
 - Stay curious. The unpredictability is intentional and part of the experience.
 
-When you finish, Playlist Chaos will feel more predictable, and you will have taken your first steps into AI-assisted debugging.
+When you finish, Playlist Chaos will feel more predictable, and you will have taken your first steps into AI-assisted debugging. 
+
+
+## TF Summary (Mofe Okonedo) ##
+
+I think that the core concept that students need to understand for this tinker activity is how seemingly 'small' errors in different parts of Python code can actually have a huge effect on an application when it doesn't do the things you want it to. Hence why it's important to understand what you want the code to do versus what it's actually doing (I like to call it gap analysis). I think that a lot of students will probably struggle with the search songs function, only because the code syntactically works but does not logically work and that could be taken as a data error. The stats bugs in the compute_playlist_stats were also pretty tricky to catch because unless you manually do the math yourself it's kind of hard to tell whether the numbers were correct, due to the fact that numbers appear regardless. AI was really helpful in checking the little things like keywords that were checked against other keywords like hype and chill. I beleive that AI can be misleading when it's helping students but they don't actually understand how the code is supposed to work or what it's supposed to do, they're just grabbing the end product without any manual thinking of their own. It's supposed to be a supplement to your workflow not the sole contributor, AI is the teammate not the only player on the team. In order to guide them to the right answer for the first bug I found I would ask "How come when I put in the query 'que' it doesn't work, if I am looking for 'queen'? Which should show them that it's checking if 'Queen' is in 'Que' rather than the other way around.
+
