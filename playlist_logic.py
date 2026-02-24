@@ -71,10 +71,10 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
 
     is_hype_keyword = any(k in genre for k in hype_keywords)
 
-    # FIX 1: The original code checked chill keywords against the song's
-    # title instead of its genre. For example, a song with genre "ambient"
-    # would not be caught by this check. Fixed to check genre, which is
-    # consistent with how hype keywords are checked.
+    # FIX 1: This was checking the song title for chill words instead of
+    # the genre, which made no sense. A song called "My Ambient Dream" would
+    # get flagged as chill but a song actually in the ambient genre wouldn't.
+    # Switched it to check the genre, same as how hype keywords work.
     is_chill_keyword = any(k in genre for k in chill_keywords)
 
     if genre == favorite_genre or energy >= hype_min_energy or is_hype_keyword:
@@ -120,17 +120,18 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
     chill = playlists.get("Chill", [])
     mixed = playlists.get("Mixed", [])
 
-    # FIX 2: The original code set total = len(hype), which meant hype_ratio
-    # was always hype / hype = 1.0. Fixed to use len(all_songs) so the ratio
-    # correctly reflects what portion of ALL songs are hype.
+    # FIX 2: total was set to len(hype) which meant we were dividing hype
+    # by itself — so hype_ratio was always 1.0 no matter what. Changed it
+    # to use all_songs so the ratio actually means something.
     total = len(all_songs)
     hype_ratio = len(hype) / total if total > 0 else 0.0
 
     avg_energy = 0.0
     if all_songs:
-        # FIX 3: The original code only summed energy from hype songs but
-        # divided by the total number of all songs, giving a deflated and
-        # incorrect average. Fixed to sum energy across all songs.
+        # FIX 3: The energy sum was only looking at hype songs but then
+        # dividing by the total number of songs. That gives you a weird
+        # low number that doesn't represent anything useful. Fixed to
+        # add up energy from every song before dividing.
         total_energy = sum(song.get("energy", 0) for song in all_songs)
         avg_energy = total_energy / len(all_songs)
 
@@ -178,11 +179,11 @@ def search_songs(
 
     for song in songs:
         value = str(song.get(field, "")).lower()
-        # FIX 4: The original condition was `value in q`, which asked "does
-        # the full artist name fit inside the short query?" that will almost always
-        # False. Fixed to `q in value`, which asks "does the query appear
-        # somewhere in the artist name?" allowing partial matches like
-        # typing "qu" to find "queen".
+         # FIX 4: The condition was backwards, it was checking if the artist
+        # name fit inside the search query, which almost never works. Typing
+        # "qu" to find "queen" would fail because "queen" doesn't fit inside
+        # "qu". Flipped it so we check if the query appears inside the artist
+        # name instead, which is how search is supposed to work.
         if value and q in value:
             filtered.append(song)
 
@@ -200,9 +201,9 @@ def lucky_pick(
     elif mode == "chill":
         songs = playlists.get("Chill", [])
     else:
-        # FIX 5: The original "any" mode only pulled from Hype and Chill,
-        # silently leaving out Mixed songs entirely. Fixed to include all
-        # three playlists so every song has a chance of being picked.
+        # FIX 5: "any" mode was only pulling from Hype and Chill, so Mixed
+        # songs had zero chance of ever being picked. Added Mixed to the
+        # pool so all songs are actually included when mode is "any".
         songs = (playlists.get("Hype", []) +
                  playlists.get("Chill", []) +
                  playlists.get("Mixed", []))
@@ -214,9 +215,9 @@ def random_choice_or_none(songs: List[Song]) -> Optional[Song]:
     """Return a random song or None if the list is empty."""
     import random
 
-    # FIX 6: The original code called random.choice(songs) with no guard,
-    # which crashes with an IndexError when the list is empty. Fixed to
-    # return None instead, which the app handles gracefully with a warning.
+    # FIX 6: random.choice() crashes if you pass it an empty list, and the
+    # app would just break. Added a simple check so it
+    # returns None instead, which the streamline app can handle better.
     return random.choice(songs) if songs else None
 
 
